@@ -1,0 +1,14 @@
+{
+  "name": "bugdna-tracker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Zero-dependency privacy-first browser telemetry tracker for BugDNA",
+  "main": "bugdna-tracker.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}
+

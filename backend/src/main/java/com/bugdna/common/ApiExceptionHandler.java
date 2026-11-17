@@ -15,6 +15,14 @@ import java.util.Map;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Unauthorized");
+        problem.setType(URI.create("about:blank"));
+        return problem;
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());

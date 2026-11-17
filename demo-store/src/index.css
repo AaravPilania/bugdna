@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #F7F5F0;
+  color: #161615;
+  min-height: 100dvh;
+}
+
+:focus-visible {
+  outline: 2px solid #1C4B3B;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
