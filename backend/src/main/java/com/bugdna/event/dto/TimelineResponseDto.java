@@ -11,3 +11,4 @@ public record TimelineResponseDto(
     boolean wasRegression,
     List<TimelineEventDto> events
 ) {}
+

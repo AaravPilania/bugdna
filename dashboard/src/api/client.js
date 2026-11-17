@@ -92,6 +92,11 @@ export const api = {
       const q = occurrenceId ? `?occurrenceId=${occurrenceId}` : '';
       return request(`/bugs/${id}/timeline${q}`);
     },
+    getAnalysis: (id) => request(`/bugs/${id}/analysis`),
+    runAnalysis: (id, force = false) =>
+      request(`/bugs/${id}/analysis?force=${force ? 'true' : 'false'}`, {
+        method: 'POST',
+      }),
   },
 
   comments: {

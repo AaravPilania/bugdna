@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import LiveActivityRail from '../components/LiveActivityRail';
 import DnaStrand from '../components/DnaStrand';
 import TimelinePanel from '../components/TimelinePanel';
+import AiAnalysisPanel from '../components/AiAnalysisPanel';
 import AlertDialog from '../components/AlertDialog';
 import {
   ArrowLeft,
@@ -35,6 +36,7 @@ export default function BugDetailPage() {
   const [copied, setCopied] = useState(false);
   const [patching, setPatching] = useState(false);
   const [strandPulsing, setStrandPulsing] = useState(false);
+  const [highlightedEventId, setHighlightedEventId] = useState(null);
   const prevOccurrenceCountRef = useRef(null);
   const [newCommentAuthor, setNewCommentAuthor] = useState('dev');
   const [newCommentBody, setNewCommentBody] = useState('');
@@ -315,6 +317,7 @@ export default function BugDetailPage() {
                     bugId={bug.id}
                     sessionsAffected={bug.sessionsAffected}
                     occurrenceCount={bug.occurrenceCount}
+                    highlightedEventId={highlightedEventId}
                   />
 
                   {/* Telemetry Metrics & View Summary */}
@@ -420,21 +423,15 @@ export default function BugDetailPage() {
                     </div>
                   </div>
 
-                  {/* Phase 5 AI Analysis Panel Placeholder */}
-                  <div className="p-4 rounded bg-panel border border-line flex flex-col gap-3 text-xs font-mono">
-                    <div className="flex items-center justify-between pb-2 border-b border-line">
-                      <h2 className="text-xs uppercase tracking-wider font-bold text-content-muted flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-accent" />
-                        AI Root Cause Analysis
-                      </h2>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-line/60 text-content-muted">
-                        Phase 5
-                      </span>
-                    </div>
-                    <div className="p-4 text-center rounded bg-bg/50 border border-dashed border-line text-content-muted text-[11px] leading-relaxed">
-                      Evidence-backed generative root cause analysis with citation verification will be enabled in Phase 5.
-                    </div>
-                  </div>
+                  {/* AI Analysis Panel (Evidence vs Hypotheses) */}
+                  <AiAnalysisPanel
+                    bugId={bug.id}
+                    bugTitle={bug.title}
+                    onSelectEvidenceEvent={(evId) => {
+                      setHighlightedEventId(evId);
+                      setTimeout(() => setHighlightedEventId(null), 2500);
+                    }}
+                  />
 
                   {/* Comments Section */}
                   <div className="p-4 rounded bg-panel border border-line flex flex-col gap-4 text-xs font-mono">
