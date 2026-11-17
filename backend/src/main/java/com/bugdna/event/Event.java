@@ -40,7 +40,7 @@ public class Event {
     private String httpMethod;
 
     @Column(name = "http_status")
-    private Integer httpStatus;
+    private Short httpStatus;
 
     @Column(length = 255)
     private String endpoint;
@@ -131,11 +131,11 @@ public class Event {
         this.httpMethod = httpMethod;
     }
 
-    public Integer getHttpStatus() {
+    public Short getHttpStatus() {
         return httpStatus;
     }
 
-    public void setHttpStatus(Integer httpStatus) {
+    public void setHttpStatus(Short httpStatus) {
         this.httpStatus = httpStatus;
     }
 
