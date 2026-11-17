@@ -2,7 +2,10 @@ package com.bugdna.bug;
 
 import com.bugdna.bug.dto.BugDetailDto;
 import com.bugdna.bug.dto.BugListItemDto;
+import com.bugdna.bug.dto.BugOccurrenceDto;
 import com.bugdna.bug.dto.BugPatchRequest;
+import com.bugdna.event.TimelineService;
+import com.bugdna.event.dto.TimelineResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +18,11 @@ import java.util.Map;
 public class BugController {
 
     private final BugService bugService;
-    private final BugOccurrenceRepository bugOccurrenceRepository;
+    private final TimelineService timelineService;
 
-    public BugController(BugService bugService, BugOccurrenceRepository bugOccurrenceRepository) {
+    public BugController(BugService bugService, TimelineService timelineService) {
         this.bugService = bugService;
-        this.bugOccurrenceRepository = bugOccurrenceRepository;
+        this.timelineService = timelineService;
     }
 
     @GetMapping
@@ -56,9 +59,15 @@ public class BugController {
     }
 
     @GetMapping("/{id}/occurrences")
-    public ResponseEntity<List<BugOccurrence>> getOccurrences(@PathVariable Long id) {
-        List<BugOccurrence> occurrences = bugOccurrenceRepository.findByBugIdOrderByOccurredAtDesc(id);
-        return ResponseEntity.ok(occurrences);
+    public ResponseEntity<List<BugOccurrenceDto>> getOccurrences(@PathVariable Long id) {
+        return ResponseEntity.ok(timelineService.getOccurrences(id));
+    }
+
+    @GetMapping("/{id}/timeline")
+    public ResponseEntity<TimelineResponseDto> getTimeline(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long occurrenceId
+    ) {
+        return ResponseEntity.ok(timelineService.getTimeline(id, occurrenceId));
     }
 }
-

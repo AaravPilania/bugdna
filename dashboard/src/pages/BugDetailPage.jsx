@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSyncState } from '../hooks/useSyncState';
 import Navbar from '../components/Navbar';
 import LiveActivityRail from '../components/LiveActivityRail';
 import DnaStrand from '../components/DnaStrand';
+import TimelinePanel from '../components/TimelinePanel';
 import AlertDialog from '../components/AlertDialog';
 import {
   ArrowLeft,
@@ -33,6 +34,8 @@ export default function BugDetailPage() {
   // Form states
   const [copied, setCopied] = useState(false);
   const [patching, setPatching] = useState(false);
+  const [strandPulsing, setStrandPulsing] = useState(false);
+  const prevOccurrenceCountRef = useRef(null);
   const [newCommentAuthor, setNewCommentAuthor] = useState('dev');
   const [newCommentBody, setNewCommentBody] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -42,6 +45,15 @@ export default function BugDetailPage() {
   const fetchBugData = useCallback(async () => {
     try {
       const data = await api.bugs.get(id);
+      if (
+        prevOccurrenceCountRef.current !== null &&
+        data.occurrenceCount > prevOccurrenceCountRef.current
+      ) {
+        // Signature moment: pulse DNA strand once when occurrence_count rises
+        setStrandPulsing(true);
+        setTimeout(() => setStrandPulsing(false), 420);
+      }
+      prevOccurrenceCountRef.current = data.occurrenceCount;
       setBug(data);
       setIsDeleted(false);
       setError(null);
@@ -289,14 +301,57 @@ export default function BugDetailPage() {
                 <DnaStrand
                   fingerprint={bug.fingerprint}
                   isRegression={bug.isRegression}
+                  isPulsing={strandPulsing}
                   size="lg"
                   showLabels={true}
                 />
               </div>
 
-              {/* Split Layout: Left Controls & Stats, Right Timeline & AI & Comments */}
+              {/* Split Layout: Timeline on the left, Controls + AI + Comments on the right */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left Column (5 Cols): Inline Controls & Metadata */}
+                {/* Left Column (7 Cols): Click-to-Crash Timeline & Telemetry Stats */}
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                  <TimelinePanel
+                    bugId={bug.id}
+                    sessionsAffected={bug.sessionsAffected}
+                    occurrenceCount={bug.occurrenceCount}
+                  />
+
+                  {/* Telemetry Metrics & View Summary */}
+                  <div className="p-4 rounded bg-panel border border-line flex flex-col gap-3 text-xs font-mono">
+                    <h2 className="text-xs uppercase tracking-wider font-bold text-content-muted pb-2 border-b border-line">
+                      Telemetry Analytics
+                    </h2>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-2.5 rounded bg-bg border border-line/60">
+                        <span className="text-[10px] text-content-muted block">Occurrences</span>
+                        <span className="text-base font-bold text-content tabular-nums">{bug.occurrenceCount}</span>
+                      </div>
+
+                      <div className="p-2.5 rounded bg-bg border border-line/60">
+                        <span className="text-[10px] text-content-muted block">Sessions Affected</span>
+                        <span className="text-base font-bold text-accent tabular-nums">{bug.sessionsAffected}</span>
+                      </div>
+
+                      <div className="p-2.5 rounded bg-bg border border-line/60">
+                        <span className="text-[10px] text-content-muted block">Regression Count</span>
+                        <span className={`text-base font-bold tabular-nums ${bug.regressionCount > 0 ? 'text-danger' : 'text-content'}`}>
+                          {bug.regressionCount}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded bg-bg border border-line/60">
+                        <span className="text-[10px] text-content-muted block">Minutes Open</span>
+                        <span className="text-base font-bold text-content tabular-nums">
+                          {bug.minutesOpen != null ? `${bug.minutesOpen}m` : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column (5 Cols): Triage Controls, AI Panel & Comments */}
                 <div className="lg:col-span-5 flex flex-col gap-6">
                   {/* Status, Priority & Assignee Control Panel */}
                   <div className="p-4 rounded bg-panel border border-line flex flex-col gap-4 text-xs font-mono">
@@ -365,58 +420,6 @@ export default function BugDetailPage() {
                     </div>
                   </div>
 
-                  {/* Telemetry Metrics & View Summary */}
-                  <div className="p-4 rounded bg-panel border border-line flex flex-col gap-3 text-xs font-mono">
-                    <h2 className="text-xs uppercase tracking-wider font-bold text-content-muted pb-2 border-b border-line">
-                      Telemetry Analytics
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-2.5 rounded bg-bg border border-line/60">
-                        <span className="text-[10px] text-content-muted block">Occurrences</span>
-                        <span className="text-base font-bold text-content">{bug.occurrenceCount}</span>
-                      </div>
-
-                      <div className="p-2.5 rounded bg-bg border border-line/60">
-                        <span className="text-[10px] text-content-muted block">Sessions Affected</span>
-                        <span className="text-base font-bold text-accent">{bug.sessionsAffected}</span>
-                      </div>
-
-                      <div className="p-2.5 rounded bg-bg border border-line/60">
-                        <span className="text-[10px] text-content-muted block">Regression Count</span>
-                        <span className={`text-base font-bold ${bug.regressionCount > 0 ? 'text-danger' : 'text-content'}`}>
-                          {bug.regressionCount}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 rounded bg-bg border border-line/60">
-                        <span className="text-[10px] text-content-muted block">Minutes Open</span>
-                        <span className="text-base font-bold text-content">
-                          {bug.minutesOpen != null ? `${bug.minutesOpen}m` : '—'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Phase 4 Timeline Placeholder */}
-                  <div className="p-4 rounded bg-panel border border-line flex flex-col gap-3 text-xs font-mono">
-                    <div className="flex items-center justify-between pb-2 border-b border-line">
-                      <h2 className="text-xs uppercase tracking-wider font-bold text-content-muted flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        Session Timeline
-                      </h2>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-line/60 text-content-muted">
-                        Phase 4
-                      </span>
-                    </div>
-                    <div className="p-4 text-center rounded bg-bg/50 border border-dashed border-line text-content-muted text-[11px] leading-relaxed">
-                      Click-to-crash browser timeline will be activated in Phase 4 (events: [trigger − 120s, +10s]).
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column (7 Cols): AI Panel & Comments */}
-                <div className="lg:col-span-7 flex flex-col gap-6">
                   {/* Phase 5 AI Analysis Panel Placeholder */}
                   <div className="p-4 rounded bg-panel border border-line flex flex-col gap-3 text-xs font-mono">
                     <div className="flex items-center justify-between pb-2 border-b border-line">

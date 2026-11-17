@@ -41,12 +41,13 @@ export default {
       },
       keyframes: {
         pulseGlow: {
-          '0%, 100%': { opacity: '1', filter: 'brightness(1)' },
-          '50%': { opacity: '0.6', filter: 'brightness(1.5) drop-shadow(0 0 6px rgba(200, 241, 105, 0.6))' }
+          '0%': { opacity: '1', transform: 'scaleY(1)' },
+          '40%': { opacity: '0.55', transform: 'scaleY(1.14)' },
+          '100%': { opacity: '1', transform: 'scaleY(1)' }
         },
         highlightFlash: {
-          '0%': { backgroundColor: 'rgba(200, 241, 105, 0.15)', borderColor: 'var(--accent)' },
-          '100%': { backgroundColor: 'transparent', borderColor: 'var(--line)' }
+          '0%': { opacity: '0.55', transform: 'translateX(3px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' }
         },
         slideDown: {
           '0%': { opacity: '0', transform: 'translateY(-6px)' },
@@ -54,9 +55,9 @@ export default {
         }
       },
       animation: {
-        'pulse-glow': 'pulseGlow 1.2s ease-in-out',
+        'pulse-glow': 'pulseGlow 360ms cubic-bezier(0.16, 1, 0.3, 1)',
         'highlight-flash': 'highlightFlash 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        'slide-down': 'slideDown 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+        'slide-down': 'slideDown 220ms cubic-bezier(0.16, 1, 0.3, 1)'
       }
     },
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSyncState } from '../hooks/useSyncState';
@@ -71,6 +71,8 @@ export default function BugsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchInput, setSearchInput] = useState(queryParam);
+  const [pulsingBugIds, setPulsingBugIds] = useState(new Set());
+  const prevCountsRef = useRef(new Map());
 
   const fetchBugs = useCallback(async () => {
     try {
@@ -82,7 +84,32 @@ export default function BugsPage() {
         q: queryParam || undefined,
         sort: sortParam || undefined,
       });
-      setBugs(data || []);
+      const list = data || [];
+      const newlyPulsed = [];
+      if (prevCountsRef.current.size > 0) {
+        list.forEach((b) => {
+          const oldCount = prevCountsRef.current.get(b.id);
+          if (oldCount === undefined || b.occurrenceCount > oldCount) {
+            newlyPulsed.push(b.id);
+          }
+        });
+      }
+      const nextMap = new Map();
+      list.forEach((b) => nextMap.set(b.id, b.occurrenceCount));
+      prevCountsRef.current = nextMap;
+
+      if (newlyPulsed.length > 0) {
+        setPulsingBugIds((prev) => new Set([...prev, ...newlyPulsed]));
+        setTimeout(() => {
+          setPulsingBugIds((prev) => {
+            const cleaned = new Set(prev);
+            newlyPulsed.forEach((id) => cleaned.delete(id));
+            return cleaned;
+          });
+        }, 420);
+      }
+
+      setBugs(list);
     } catch (err) {
       if (err.message !== 'Unauthorized') {
         setError(err.message || 'Failed to load bugs.');
@@ -314,7 +341,7 @@ export default function BugsPage() {
                               <DnaStrand
                                 fingerprint={bug.fingerprint}
                                 isRegression={bug.isRegression}
-                                isPulsing={isChanged}
+                                isPulsing={pulsingBugIds.has(bug.id) || isChanged}
                                 size="sm"
                               />
                             </div>

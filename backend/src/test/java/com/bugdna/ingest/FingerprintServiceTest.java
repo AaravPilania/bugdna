@@ -134,5 +134,30 @@ class FingerprintServiceTest {
 
         assertEquals("v1|NETWORK_ERROR|POST|/demo-api/analytics/heartbeat", canonical);
     }
+
+    @Test
+    @DisplayName("Different errorCode or status produces distinct fingerprints; same normalized error produces identical fingerprint")
+    void testTableDrivenFingerprintEquivalenceAndSeparation() {
+        record Case(String method, String ep1, String ep2, int status1, int status2, String code1, String code2, boolean shouldMatch) {}
+
+        var cases = java.util.List.of(
+                new Case("POST", "/demo-api/orders/101?debug=1", "/demo-api/orders/999?debug=2", 500, 500, "DEMO_COUPON_RULE_ERROR", "DEMO_COUPON_RULE_ERROR", true),
+                new Case("GET", "/demo-api/products/12", "/demo-api/products/84729", 404, 404, "PRODUCT_NOT_FOUND", "PRODUCT_NOT_FOUND", true),
+                new Case("POST", "/demo-api/checkout", "/demo-api/checkout", 500, 500, "DEMO_COUPON_RULE_ERROR", "PAYMENT_DECLINED", false),
+                new Case("POST", "/demo-api/checkout", "/demo-api/checkout", 500, 400, "DEMO_COUPON_RULE_ERROR", "DEMO_COUPON_RULE_ERROR", false)
+        );
+
+        for (Case c : cases) {
+            String fp1 = fingerprintService.computeFingerprint(
+                    fingerprintService.computeCanonical(ErrorType.API_ERROR, c.method(), c.ep1(), c.status1(), c.code1(), null, null, null));
+            String fp2 = fingerprintService.computeFingerprint(
+                    fingerprintService.computeCanonical(ErrorType.API_ERROR, c.method(), c.ep2(), c.status2(), c.code2(), null, null, null));
+            if (c.shouldMatch()) {
+                assertEquals(fp1, fp2, "Expected matching fingerprints for " + c);
+            } else {
+                assertNotEquals(fp1, fp2, "Expected distinct fingerprints for " + c);
+            }
+        }
+    }
 }
 

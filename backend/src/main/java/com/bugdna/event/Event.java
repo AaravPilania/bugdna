@@ -57,8 +57,15 @@ public class Event {
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
 
-    @Column(name = "received_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "received_at", nullable = false, updatable = false)
     private LocalDateTime receivedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.receivedAt == null) {
+            this.receivedAt = LocalDateTime.now();
+        }
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bug_id")

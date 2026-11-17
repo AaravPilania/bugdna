@@ -47,3 +47,4 @@ export const storeApi = {
     return data;
   },
 };
+

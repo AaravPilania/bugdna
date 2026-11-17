@@ -5,6 +5,7 @@ import com.bugdna.bug.dto.BugDetailDto;
 import com.bugdna.bug.dto.BugPatchRequest;
 import com.bugdna.common.ApiExceptionHandler;
 import com.bugdna.config.AuthInterceptor;
+import com.bugdna.event.TimelineService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class BugControllerTest {
 
     private MockMvc mockMvc;
     private BugService bugService;
-    private BugOccurrenceRepository bugOccurrenceRepository;
+    private TimelineService timelineService;
     private DevTokenStore tokenStore;
     private String validToken;
 
@@ -38,9 +39,9 @@ class BugControllerTest {
         validToken = tokenInfo.token();
 
         bugService = mock(BugService.class);
-        bugOccurrenceRepository = mock(BugOccurrenceRepository.class);
+        timelineService = mock(TimelineService.class);
 
-        BugController controller = new BugController(bugService, bugOccurrenceRepository);
+        BugController controller = new BugController(bugService, timelineService);
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)

@@ -3,6 +3,7 @@ package com.bugdna.ingest;
 import com.bugdna.common.UnauthorizedException;
 import com.bugdna.event.Event;
 import com.bugdna.event.EventRepository;
+import com.bugdna.event.EventType;
 import com.bugdna.event.TrackingSession;
 import com.bugdna.event.TrackingSessionRepository;
 import com.bugdna.ingest.dto.IngestBatchRequest;
@@ -10,40 +11,55 @@ import com.bugdna.ingest.dto.IngestBatchResponse;
 import com.bugdna.ingest.dto.IngestEventDto;
 import com.bugdna.project.Project;
 import com.bugdna.project.ProjectRepository;
-import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class IngestService {
+
+    private static final Set<EventType> ERROR_EVENT_TYPES = EnumSet.of(
+            EventType.JS_ERROR,
+            EventType.PROMISE_REJECTION,
+            EventType.API_ERROR,
+            EventType.NETWORK_ERROR
+    );
 
     private final ProjectRepository projectRepository;
     private final TrackingSessionRepository sessionRepository;
     private final EventRepository eventRepository;
     private final Sanitizer sanitizer;
-    private final EntityManager entityManager;
+    private final BugGroupingService bugGroupingService;
+    private final TransactionTemplate requiresNewTx;
 
     public IngestService(
             ProjectRepository projectRepository,
             TrackingSessionRepository sessionRepository,
             EventRepository eventRepository,
             Sanitizer sanitizer,
-            EntityManager entityManager
+            BugGroupingService bugGroupingService,
+            PlatformTransactionManager transactionManager
     ) {
         this.projectRepository = projectRepository;
         this.sessionRepository = sessionRepository;
         this.eventRepository = eventRepository;
         this.sanitizer = sanitizer;
-        this.entityManager = entityManager;
+        this.bugGroupingService = bugGroupingService;
+        this.requiresNewTx = new TransactionTemplate(transactionManager);
+        this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
-    @Transactional
     public IngestBatchResponse ingestBatch(String projectKey, IngestBatchRequest request) {
         if (projectKey == null || projectKey.isBlank()) {
             throw new UnauthorizedException("Missing X-BugDNA-Key header");
@@ -52,49 +68,89 @@ public class IngestService {
         Project project = projectRepository.findByProjectKey(projectKey.trim())
                 .orElseThrow(() -> new UnauthorizedException("Invalid project key"));
 
-        // Mark actor as TRACKER so MySQL triggers attribute events to TRACKER
-        setMySqlActor("TRACKER");
+        // 1. Upsert tracking session (retry once if two concurrent batches create the same session)
+        Long sessionPk = upsertSessionWithRetry(project.getId(), request.sessionId(), request.userAgent());
+
+        int accepted = 0;
+        int duplicates = 0;
+        Set<Long> bugsCreated = new LinkedHashSet<>();
+        Set<Long> bugsUpdated = new LinkedHashSet<>();
+        Set<Long> regressions = new LinkedHashSet<>();
+
+        // 2. Persist each event idempotently, then group error events deterministically
+        for (IngestEventDto dto : request.events()) {
+            Long savedEventPk = saveEventIdempotently(project.getId(), sessionPk, dto);
+            if (savedEventPk == null) {
+                duplicates++;
+                continue;
+            }
+
+            accepted++;
+
+            if (ERROR_EVENT_TYPES.contains(dto.type())) {
+                BugGroupingService.GroupingOutcome outcome = groupErrorWithRetry(project.getId(), sessionPk, savedEventPk, dto);
+                if (outcome.created()) {
+                    bugsCreated.add(outcome.bugId());
+                } else if (outcome.updated()) {
+                    bugsUpdated.add(outcome.bugId());
+                }
+                if (outcome.regression()) {
+                    regressions.add(outcome.bugId());
+                }
+            }
+        }
+
+        return new IngestBatchResponse(
+                accepted,
+                duplicates,
+                new ArrayList<>(bugsCreated),
+                new ArrayList<>(bugsUpdated),
+                new ArrayList<>(regressions)
+        );
+    }
+
+    private Long upsertSessionWithRetry(Long projectId, String sessionId, String rawUserAgent) {
+        String cleanUa = sanitizer.sanitizeText(rawUserAgent, 255);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                return requiresNewTx.execute(status -> {
+                    LocalDateTime now = LocalDateTime.now();
+                    TrackingSession session = sessionRepository
+                            .findByProjectIdAndSessionId(projectId, sessionId)
+                            .map(existing -> {
+                                existing.setLastSeenAt(now);
+                                if (cleanUa != null && existing.getUserAgent() == null) {
+                                    existing.setUserAgent(cleanUa);
+                                }
+                                return sessionRepository.saveAndFlush(existing);
+                            })
+                            .orElseGet(() -> {
+                                Project projectRef = projectRepository.getReferenceById(projectId);
+                                TrackingSession created = new TrackingSession(projectRef, sessionId, cleanUa, now, now);
+                                return sessionRepository.saveAndFlush(created);
+                            });
+                    return session.getId();
+                });
+            } catch (DataIntegrityViolationException ex) {
+                if (attempt == 2) throw ex;
+            }
+        }
+        throw new IllegalStateException("Failed to upsert tracking session: " + sessionId);
+    }
+
+    private Long saveEventIdempotently(Long projectId, Long sessionPk, IngestEventDto dto) {
         try {
-            LocalDateTime now = LocalDateTime.now();
-
-            // 1. Upsert tracking session
-            TrackingSession session = sessionRepository
-                    .findByProjectIdAndSessionId(project.getId(), request.sessionId())
-                    .map(existing -> {
-                        existing.setLastSeenAt(now);
-                        if (request.userAgent() != null && existing.getUserAgent() == null) {
-                            existing.setUserAgent(sanitizer.sanitizeText(request.userAgent(), 255));
-                        }
-                        return sessionRepository.save(existing);
-                    })
-                    .orElseGet(() -> {
-                        TrackingSession created = new TrackingSession(
-                                project,
-                                request.sessionId(),
-                                sanitizer.sanitizeText(request.userAgent(), 255),
-                                now,
-                                now
-                        );
-                        return sessionRepository.save(created);
-                    });
-
-            int accepted = 0;
-            int duplicates = 0;
-            List<Long> bugsCreated = new ArrayList<>();
-            List<Long> bugsUpdated = new ArrayList<>();
-            List<Long> regressions = new ArrayList<>();
-
-            // 2. Process events with server-side sanitization and idempotent dedupe
-            for (IngestEventDto dto : request.events()) {
-                // Fast check for duplicate eventId
-                if (eventRepository.findByProjectIdAndEventId(project.getId(), dto.eventId()).isPresent()) {
-                    duplicates++;
-                    continue;
+            return requiresNewTx.execute(status -> {
+                if (eventRepository.findByProjectIdAndEventId(projectId, dto.eventId()).isPresent()) {
+                    return null;
                 }
 
+                Project projectRef = projectRepository.getReferenceById(projectId);
+                TrackingSession sessionRef = sessionRepository.getReferenceById(sessionPk);
+
                 Event event = new Event();
-                event.setProject(project);
-                event.setSession(session);
+                event.setProject(projectRef);
+                event.setSession(sessionRef);
                 event.setEventId(dto.eventId());
                 event.setType(dto.type());
                 event.setActionLabel(sanitizer.sanitizeText(dto.actionLabel(), 80));
@@ -108,33 +164,39 @@ public class IngestService {
 
                 LocalDateTime occurredAt = dto.occurredAt() != null
                         ? LocalDateTime.ofInstant(dto.occurredAt(), ZoneOffset.UTC)
-                        : now;
+                        : LocalDateTime.now();
                 event.setOccurredAt(occurredAt);
 
+                Event saved = eventRepository.saveAndFlush(event);
+                return saved.getId();
+            });
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent duplicate (project_id, event_id) caught safely
+            return null;
+        }
+    }
+
+    private BugGroupingService.GroupingOutcome groupErrorWithRetry(
+            Long projectId, Long sessionPk, Long eventPk, IngestEventDto dto
+    ) {
+        int maxAttempts = 6;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return bugGroupingService.groupErrorEvent(projectId, sessionPk, eventPk, dto);
+            } catch (DataIntegrityViolationException | PessimisticLockingFailureException ex) {
+                // Concurrent INSERT on UNIQUE(project_id, fingerprint) or lock timeout:
+                // retry cleanly so this occurrence increments the winning bug row.
+                if (attempt == maxAttempts) {
+                    throw ex;
+                }
                 try {
-                    eventRepository.saveAndFlush(event);
-                    accepted++;
-                } catch (DataIntegrityViolationException ex) {
-                    // Concurrent duplicate eventId race caught safely
-                    duplicates++;
+                    Thread.sleep(15L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw ex;
                 }
             }
-
-            return new IngestBatchResponse(accepted, duplicates, bugsCreated, bugsUpdated, regressions);
-        } finally {
-            // Restore pooled connection actor back to default API
-            setMySqlActor("API");
         }
-    }
-
-    private void setMySqlActor(String actor) {
-        try {
-            entityManager.createNativeQuery("SET @bugdna_actor = :actor")
-                    .setParameter("actor", actor)
-                    .executeUpdate();
-        } catch (Exception ignored) {
-            // Gracefully ignore when running on non-MySQL dialects (e.g., H2 unit tests)
-        }
+        throw new IllegalStateException("Exhausted grouping retries for event " + eventPk);
     }
 }
-

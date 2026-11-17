@@ -71,3 +71,4 @@ export default function StoreHeader({ onToggleFaults, faultsOpen }) {
     </header>
   );
 }
+
