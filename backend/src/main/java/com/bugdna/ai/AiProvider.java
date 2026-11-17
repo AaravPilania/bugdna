@@ -8,3 +8,4 @@ public interface AiProvider {
     boolean isMock();
     AiStructuredOutput analyze(SanitizedBugInput input, String promptJson, String model);
 }
+

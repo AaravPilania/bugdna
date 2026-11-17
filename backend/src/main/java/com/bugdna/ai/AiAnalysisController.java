@@ -30,3 +30,4 @@ public class AiAnalysisController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }
+

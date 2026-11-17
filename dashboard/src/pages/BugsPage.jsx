@@ -283,13 +283,23 @@ export default function BugsPage() {
           ) : bugs.length === 0 ? (
             /* Empty State */
             <div className="p-12 text-center rounded border border-line bg-panel flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-bg border border-line flex items-center justify-center text-xl">
-                🔍
+              <div className="w-10 h-10 rounded-full bg-bg border border-line flex items-center justify-center text-content-muted" aria-hidden="true">
+                <Search className="w-4 h-4" />
               </div>
               <h3 className="font-mono text-sm font-semibold text-content">No bugs found</h3>
               <p className="text-xs font-mono text-content-muted max-w-sm">
                 No telemetry matches the current filters. Adjust your query or trigger actions in the demo store.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchParams(new URLSearchParams());
+                }}
+                className="px-3 py-1.5 rounded bg-bg border border-line hover:border-accent text-xs font-mono text-content transition-colors"
+              >
+                Reset filters
+              </button>
             </div>
           ) : (
             /* Dense Bug Table */
@@ -327,9 +337,13 @@ export default function BugsPage() {
                         <td className="p-3 min-w-[280px]">
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-content hover:text-accent transition-colors line-clamp-1">
+                              <Link
+                                to={`/bugs/${bug.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="font-medium text-content hover:text-accent transition-colors line-clamp-1"
+                              >
                                 {bug.title}
-                              </span>
+                              </Link>
                               {bug.isRegression && (
                                 <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-danger/20 text-danger border border-danger/40 tracking-wider">
                                   REGRESSION

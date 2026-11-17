@@ -136,3 +136,4 @@ public class MockAiProvider implements AiProvider {
         return new AiStructuredOutput(summary, evidence, hypotheses, debuggingSteps, reproductionSteps);
     }
 }
+

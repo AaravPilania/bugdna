@@ -190,3 +190,4 @@ class AiAnalysisServiceTest {
         verify(mockAiProvider, times(2)).analyze(any(), anyString(), anyString());
     }
 }
+

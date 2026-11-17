@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 export default function AlertDialog({
@@ -11,12 +11,21 @@ export default function AlertDialog({
   onCancel,
   isDestructive = true,
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onCancel?.();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-slide-down"
-      role="dialog"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-slide-down overscroll-contain"
+      role="alertdialog"
       aria-modal="true"
     >
       <div className="w-full max-w-md rounded bg-panel border border-line shadow-2xl p-5 flex flex-col gap-4">

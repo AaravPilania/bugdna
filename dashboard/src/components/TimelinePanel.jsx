@@ -217,7 +217,7 @@ export default function TimelinePanel({
               <li
                 key={ev.id}
                 id={`timeline-event-${ev.eventId}`}
-                className={`relative pl-4 transition-all ${
+                className={`relative pl-4 transition-opacity ${
                   isHighlighted ? 'ring-1 ring-accent rounded' : ''
                 }`}
               >

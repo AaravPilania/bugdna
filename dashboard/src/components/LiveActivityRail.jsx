@@ -81,7 +81,7 @@ export default function LiveActivityRail({ activities = [] }) {
           activities.map((item) => (
             <div
               key={item.id}
-              className="p-2.5 rounded bg-bg/50 border border-line/60 hover:border-line transition-all animate-slide-down flex flex-col gap-1.5 text-xs"
+              className="p-2.5 rounded bg-bg/50 border border-line/60 hover:border-line transition-colors animate-slide-down flex flex-col gap-1.5 text-xs"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">

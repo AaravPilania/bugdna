@@ -307,3 +307,4 @@ export default function AiAnalysisPanel({ bugId, bugTitle = '', onSelectEvidence
     </section>
   );
 }
+

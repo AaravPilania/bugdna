@@ -24,8 +24,12 @@ export default function Navbar({ syncStatus, secondsAgo, onForceSync }) {
       {/* Left: Brand & Navigation */}
       <div className="flex items-center gap-8">
         <Link to="/bugs" className="flex items-center gap-2.5 group">
-          <div className="w-7 h-7 rounded bg-bg border border-line flex items-center justify-center font-mono font-bold text-accent text-sm group-hover:border-accent transition-colors">
-            🧬
+          <div className="w-7 h-7 rounded bg-bg border border-line flex items-center justify-center group-hover:border-accent transition-colors" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="2" width="3" height="12" rx="1" fill="#C8F169" />
+              <rect x="6.5" y="4" width="3" height="8" rx="1" fill="#6495ED" />
+              <rect x="11" y="2" width="3" height="12" rx="1" fill="#F2B544" />
+            </svg>
           </div>
           <div className="flex flex-col">
             <span className="font-mono font-bold text-base tracking-tight text-content group-hover:text-accent transition-colors">

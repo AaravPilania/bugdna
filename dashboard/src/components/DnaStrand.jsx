@@ -83,7 +83,7 @@ export default function DnaStrand({
         {cells.map((cell) => (
           <div
             key={cell.index}
-            className={`group relative h-6 rounded-[2px] flex items-center justify-center transition-all ${
+            className={`group relative h-6 rounded-[2px] flex items-center justify-center transition-opacity ${
               cell.isMutationTick ? 'ring-1 ring-danger' : ''
             }`}
             style={{ backgroundColor: `${cell.color}25` }}

@@ -16,5 +16,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e WHERE e.session.id = :sessionId AND e.occurredAt BETWEEN :start AND :end ORDER BY e.occurredAt ASC")
     List<Event> findTimelineEvents(@Param("sessionId") Long sessionId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT e.occurredAt FROM Event e WHERE e.occurredAt >= :since AND e.type IN ('JS_ERROR', 'PROMISE_REJECTION', 'API_ERROR', 'NETWORK_ERROR')")
+    List<LocalDateTime> findErrorEventTimestampsSince(@Param("since") LocalDateTime since);
 }
 

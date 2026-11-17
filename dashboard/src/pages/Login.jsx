@@ -39,8 +39,12 @@ export default function Login() {
       <div className="w-full max-w-sm rounded-lg bg-panel border border-line shadow-2xl p-6 md:p-8 flex flex-col gap-6 relative z-10 animate-slide-down">
         {/* Brand */}
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="w-10 h-10 rounded-md bg-bg border border-line flex items-center justify-center text-xl shadow-inner">
-            🧬
+          <div className="w-10 h-10 rounded-md bg-bg border border-line flex items-center justify-center shadow-inner" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="2" width="3" height="12" rx="1" fill="#C8F169" />
+              <rect x="6.5" y="4" width="3" height="8" rx="1" fill="#6495ED" />
+              <rect x="11" y="2" width="3" height="12" rx="1" fill="#F2B544" />
+            </svg>
           </div>
           <h1 className="font-mono text-xl font-bold tracking-tight text-content">
             BugDNA Console

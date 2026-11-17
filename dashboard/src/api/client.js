@@ -130,5 +130,9 @@ export const api = {
   projects: {
     list: () => request('/projects'),
   },
+
+  analytics: {
+    overview: () => request('/analytics/overview'),
+  },
 };
 
