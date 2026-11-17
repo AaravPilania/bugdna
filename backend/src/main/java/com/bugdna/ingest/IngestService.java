@@ -19,7 +19,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -162,8 +162,9 @@ public class IngestService {
                 event.setMessage(sanitizer.sanitizeText(dto.message(), 500));
                 event.setStackTop(sanitizer.sanitizeText(dto.stackTop(), 500));
 
+                // Convert browser ISO instant to server local time to match MySQL NOW(3) and LocalDateTime.now()
                 LocalDateTime occurredAt = dto.occurredAt() != null
-                        ? LocalDateTime.ofInstant(dto.occurredAt(), ZoneOffset.UTC)
+                        ? LocalDateTime.ofInstant(dto.occurredAt(), ZoneId.systemDefault())
                         : LocalDateTime.now();
                 event.setOccurredAt(occurredAt);
 
