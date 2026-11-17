@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bugdnatest;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+bugdna:
+  auth:
+    dev-user: dev
+    dev-password: password123
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:5174
+
