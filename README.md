@@ -17,14 +17,28 @@
 
 ---
 
-## Quick Start (≤ 10 Commands)
+## Quick Start
 
+### Option A: One-Command Windows Launcher (PowerShell)
+```powershell
+# 1. Start all 3 servers in dedicated windows and wait for health check:
+.\start-demo.ps1
+
+# 2. Reset database between demo runs anytime:
+.\reset-demo.ps1
+```
+
+### Option B: Manual Multi-Platform Setup
 **Prerequisites:** JDK 21+, Node.js 20+, MySQL 8.0/8.4 (or Docker Desktop).
 
 ```bash
 # 1. Start MySQL (either local service + setup.sql OR docker compose up -d)
+# In Linux/macOS bash:
 mysql -u root -p < database/setup.sql
-# Optional alternative if no local MySQL: docker compose up -d
+# In Windows PowerShell:
+Get-Content database/setup.sql | mysql -u root -p
+# Or Docker:
+docker compose up -d
 
 # 2. Configure local env files (optional: defaults work out-of-the-box for local dev)
 cp backend/.env.example backend/.env
