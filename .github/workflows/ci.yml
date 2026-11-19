@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Java 21)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+      - name: Build and test
+        # Unit/integration tests use the in-memory H2 database (MODE=MySQL);
+        # no MySQL service is required in CI.
+        run: ./mvnw -B verify
+
+  dashboard:
+    name: Dashboard build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  demo-store:
+    name: Demo store build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: demo-store/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  tracker:
+    name: Tracker tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: tracker/package-lock.json
+      - run: npm ci
+      - run: npm test
